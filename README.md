@@ -92,3 +92,31 @@ $ microk8s.kubectl .... #para microk8s
 Recomendo muito utilizar o microk8s pois a instalação do minikube pode ser meio chata, visto que precisa configurar muitas coisas, dentre elas uma vm.
 
 > OBS.: Uma consideração a ser feita com o microk8s é que se você quiser fazer o alias basta colocar dentro do arquivo `~/.bash_aliases` o comando `alias kubectl='microk8s kubectl'`, mas isso somente pode ser feito caso não tenha instalado o `kubectl` propriamente dito. Pois a estratégia do microk8s é criar um namespace com o próprio kubectl, e assim acessá-lo com o comando `microk8s.kubectl`, para justamente evitar problemas com uma instalação previa do kubectl. Então caso não tenha uma instalação do kubectl você pode criar o alias. Eu não vou fazer isso, vou seguir utilizando o microk8s.kubectl pois prefiro assim, pois assim eu diferencio mais as coisas, e eu também já tenho uma instalação do kubectl.
+
+# 3. CONTEXTO
+Um contexto é o nome dado ao arquivo que contém os dados de conexão com um determinado cluster. Logo sempre que formos nos referir a um dado cluster temos que informar em qual contexto queremos trabalhar. Isso pode ser feito através de uma flag `--context <nome_do_cluster>` no final de cada comando, mas para facilitar e não precisarmos ficar passando esse parâmetro toda hora, podemos definir um contexto padrão.
+
+## 3.1 CONFIGURANDO UM CONTEXTO PADRÃO
+Para ver em qual contexto você está, digite o comando:
+```sh
+$ microk8s.kubectl config get-contexts
+```
+
+Na coluna CURRENT deve estar marcando algum dos seus clusters (provavelmente do microk8s). Para definir algum específico você pode digitar:
+
+```sh
+$ microk8s.kubectl config use-context <nome_do_cluster>
+```
+Depois disso feito, todos os comando que serão executados utilizarão esse contexto.
+
+
+
+
+
+
+
+
+
+
+
+
