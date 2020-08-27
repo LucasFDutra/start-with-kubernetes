@@ -2,6 +2,8 @@
 
 > UMA DICA.: EU ESTOU LENDO UM LIVRO PARA ESTUDAR O ASSUNTO, E ESTOU GOSTANDO MUITO DELE, VOU DEIXAR O LINK AQUI, [Kubernetes: Tudo sobre orquestração de contêineres - Lucas Santos](https://www.amazon.com.br/Kubernetes-Tudo-sobre-orquestra%C3%A7%C3%A3o-cont%C3%AAineres-ebook/dp/B07X2MQL1Q/ref=sr_1_1?__mk_pt_BR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=3T19KEEHXB35L&dchild=1&keywords=kubernetes+lucas+santos&qid=1597787059&sprefix=kubernet%2Caps%2C121&sr=8-1).
 
+> OBS.: O repositório está meio parado pois estou lendo o livro todo primeiro para depois reler praticando e então voltar a colocar conteúdo aqui.
+
 # 1. O QUE É O KUBERNETES
 Considere que você tem um sistema com diversos containers, cada parte dele responsável por alguma parte do seu sistema. Agora imagine escalar isso tudo, verificar se algum container caiu, reativar um container que deu problema, fazer a conexão entra os containers... tudo na mão. Bom, não precisa imaginar um sistema muito grande para ter noção de que isso é uma péssima ideia, e que seria muito bom se tivesse um sistema automático para gerenciar seus containers de forma inteligênte e simples. E é justamente isso o que o kubernetes faz, ele orquestra seus containers.
 
@@ -109,7 +111,9 @@ $ microk8s.kubectl config use-context <nome_do_cluster>
 ```
 Depois disso feito, todos os comando que serão executados utilizarão esse contexto.
 
+# 4. POD
 
+Um pod é a menor unidade do nosso cluster, dentro de um pod teremos um ou mais containers. Não é usual deixar mais que um container em um pod, mas é possível fazer isso, talvez você possa encontrar um caso em que isso seja necessário, então a opção de utilizar está ai.
 
 
 
