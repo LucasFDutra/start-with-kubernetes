@@ -455,11 +455,62 @@ Agora se você entrar nos seus repositórios do dockerhub você vai ver sua imag
 Agora vamos criar o arquivo declarativo para essa imagem.
 
 - Em yaml
-
-
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+        name: api-pod
+    spec:
+        containers:
+            - name: simple-api
+            image: lucasfdutra/simple-node-api
+            env:
+                - name: PORT
+                value: "8080"
+            resources:
+                requests:
+                    cpu: 100m
+                    memory: 128M
+                limits:
+                    cpu: 250m
+                    memory: 256M
+            ports:
+                - containerPort: 8080
+    ```
 
 - Em json
-
+    ```json
+    {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "api-pod"
+        },
+        "spec": {
+            "containers" : [{
+                "name": "simple-api",
+                "image": "lucasfdutra/simple-node-api",
+                "env": [{
+                    "name": "PORT",
+                    "value": "8080"
+                }],
+                "resources": {
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "128M"
+                    },
+                    "limits": {
+                        "cpu": "250m",
+                        "memory": "256M"
+                    }
+                },
+                "ports": [{
+                    "containerPort": 8080
+                }]
+            }]
+        }
+    }
+    ```
 
 Então rodaremos o comando:
 
