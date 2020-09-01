@@ -521,3 +521,370 @@ $ microk8s.kubectl create -f 01-POD/ex-02/pod-node-simple-api.yaml
 Digite o comando `microk8s.kubectl get pods` para ver o status do pod, caso ele esteja como running, então digite o comando `microk8s.kubectl logs api-pod` para ver que ele retornará `Ouvindo na porta 8080`, e agora se nos formos no browser e entrarmos na url `http://localhost:8080`, vamo ver absolutamente nada. Pois o que fizemos foi expor esse container/pod, ao node que ele se encontra, e não a internet em si (isso são cenas dos próximos capítulos).
 
 # 5. SERVICES
+
+> A PASTA DE REFERÊNCIA É A PASTA [01-SERVICES](./01-SERVICES)
+
+Services são um conjunto lógico de pods e uma política pela qual saberemos como vamos acessar estes pods.
+
+Ou seja, o service funciona como uma interface entre o acesso e o pod.
+
+Agora como vamos fazer para definir quais pods pertêncem a um dado serviço? bom, é só a gente referenciar os pods, mas como fazemos isso? Por meio de labels.
+
+## 5.1 LABELS
+
+> A PASTA DE REFERÊNCIA É A PASTA [01-SERVICES/ex-01](./01-SERVICES/ex-01)
+
+Utilizarei o pod `pod-node-simple-api` que criamos no exemplo anterior. No arquivo manifesto que utilizamos para criar esse pod, vamos definir uma label para ele. Essa label recebera o nome de `app`, e terá o valor de `simple-api`, e fica dentro de `metadata`.
+
+- Em yaml
+    ```json
+    {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "api-pod",
+            "labels": {
+                "app": "simple-api"
+            }
+        },
+        "spec": {
+            "containers" : [{
+                "name": "simple-api",
+                "image": "lucasfdutra/simple-node-api",
+                "env": [{
+                    "name": "PORT",
+                    "value": "8080"
+                }],
+                "resources": {
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "128M"
+                    },
+                    "limits": {
+                        "cpu": "250m",
+                        "memory": "256M"
+                    }
+                },
+                "ports": [{
+                    "containerPort": 8080
+                }]
+            }]
+        }
+    }
+    ```
+
+- Em json
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+        name: api-pod
+        labels:
+        app: simple-api
+    spec:
+        containers:
+            - name: simple-api
+            image: lucasfdutra/simple-node-api
+            env:
+                - name: PORT
+                value: "8080"
+            resources:
+                requests:
+                    cpu: 100m
+                    memory: 128M
+                limits:
+                    cpu: 250m
+                    memory: 256M
+            ports:
+                - containerPort: 8080
+    ```
+
+Agora para aplicarmos essa modificação no pod, vamos rodar o comando:
+
+```sh
+$ microk8s.kubectl apply -f 02-SERVICES/ex-01/pod-node-simple-api.yaml
+```
+
+Se rodarmos agora o comando 
+
+```sh
+$ microk8s.kubectl describe pod api-pod
+```
+
+Vamos ver todas as informações desse pod, e dentre elas veremos `Labels:       app=simple-api`
+
+Uma coisa importante sobre labels é que o mesmo pod pode ter várias, e quando formos criar um service, devemos nos referenciar a essas labels, sendo que para um pod entrar em um grupo do service ele deve possuir todas as labels que são descritas no service. Em exemplo seria:
+
+pod|labels
+|-|-|
+|pod-api-1| A,B,C|
+|pod-api-2| A,B,C|
+|pod-api-3| A,B,D|
+
+Se criarmos um serviço que busque por labels A e B e C então somente os pods 1 e 2 entrarão nesse service.
+
+
+### 5.1.1 BOAS PRÁTICAS
+
+Para escrever boas labels, temos algumas boas práticas a seguir:
+
+- Labels para definir o tipo de ambiente:
+    - env=prod, env=dev
+
+- Labels para versão:
+    - version=1.2
+
+- Labels para nome do serviço:
+    - app-name=api-naruto
+
+- Hash do último commit daquele código, para controle de versão específico:
+    - commit=7abdee34
+
+- Agrupamento de projetos:
+    - project=api-animes
+
+
+### 5.1.2 OUTROS USOS PARA LABELS
+
+Além de servirem para agrupar pods em um service, elas podem ser utilizadas na flag -l do kubectl. Por exemplo, rode o comando 
+
+```sh
+$ microk8s.kubectl get pod -l app=simple-api
+```
+
+Isso vai trazer informações somente de pods com essa label (no nosso caso, somente um).
+
+> OBS.: Também é possível passar multiplas labels, `$ microk8s.kubectl get pod -l "app=simple-api, commit=7abdee34"`
+
+## 5.2 DEFININDO UM SERVICE
+
+> A PASTA DE REFERÊNCIA É A PASTA [01-SERVICES/ex-02](./01-SERVICES/ex-02)
+
+Agora que já entendemos para que serve um service. Vamos criar um.
+
+O processo é bem semelhante ao de criar um pod, e envolve criarmos um arquivo manifesto.
+
+- Em yaml
+```yaml
+apiVersion: v1,
+kind: Service,
+metadata: 
+    name: api-pod-svc
+spec: 
+    selector: 
+        app: simple-api
+    ports:
+        - protocol: TCP
+          port: 8085
+          targetPort: 8080
+```
+
+- Em json
+```json
+{
+    "apiVersion": "v1",
+    "kind": "Service",
+    "metadata": {
+        "name": "api-pod-svc"
+    },
+    "spec": {
+        "selector": {
+            "app": "simple-api"
+        },
+        "ports": [{
+            "protocol": "TCP",
+            "port": 8085,
+            "targetPort": 8080
+        }]
+    }
+}
+```
+
+No inicio só mudamos o kind para Service, pois agora queremos criar um service.
+
+- selector: Colocaremos qual o seletor dos pods, ou seja, quais labels esse service irá compreender.
+
+- Ports: É onde definimos as configurações de comunicação do service para com os pods e o restante do mundo.
+
+    - protocol: Pode ser TCP, UDP ou SCTP (TCP é o default, veja sobre os outros para entender a diferença).
+    
+    - port: É a porta que o service vai ouvir, ou seja, a porta que será exposta para a internet.
+
+    - targetPort: É a porta de destino, dentro do pod, deve ser a mesma que utilizamos no campo `containerPort` do pod.
+
+Mas agora imagine que precisamos modificar a porta do nosso pod, vamos precisar modificar no pod e no service que ele está atrelado. Mas isso não é exatamente necessário, podemos dar um apelido para a porta do pod, e chamar o apelido no service, sendo assim, vamos poder trocar a porta do pod sem precisar trocar no service também, basta mantermos o apelido dela. Para isso vamos fazer uma modificação no arquivo do pod (esse arquivo modificado ficará dentro de ex-02, assim mantenho o ex-01 intocado) o campo `port` que receberá um novo campo chamado `name`.
+
+- Em yaml
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+        name: api-pod
+        labels:
+        app: simple-api
+    spec:
+        containers:
+            - name: simple-api
+            image: lucasfdutra/simple-node-api
+            env:
+                - name: PORT
+                value: "8080"
+            resources:
+                requests:
+                    cpu: 100m
+                    memory: 128M
+                limits:
+                    cpu: 250m
+                    memory: 256M
+            ports:
+                - containerPort: 8080
+                name: pod-api
+    ```
+
+- Em json
+    ```json
+    {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "api-pod",
+            "labels": {
+                "app": "simple-api"
+            }
+        },
+        "spec": {
+            "containers" : [{
+                "name": "simple-api",
+                "image": "lucasfdutra/simple-node-api",
+                "env": [{
+                    "name": "PORT",
+                    "value": "8080"
+                }],
+                "resources": {
+                    "requests": {
+                        "cpu": "100m",
+                        "memory": "128M"
+                    },
+                    "limits": {
+                        "cpu": "250m",
+                        "memory": "256M"
+                    }
+                },
+                "ports": [{
+                    "containerPort": 8080,
+                    "name": "porta-api"
+                }]
+            }]
+        }
+    }
+    ```
+
+Agora vamos modificar o arquivo do service também, para isso basta modificar o `targetPort` para apontar para o `name` dado para a `port` do `pod`.
+
+- Em yaml
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata: 
+        name: api-pod-svc
+    spec: 
+        selector: 
+            app: simple-api
+        ports:
+            - protocol: TCP
+            port: 8085
+            targetPort: porta-api
+    ```
+
+
+- Em json
+    ```json
+    {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": {
+            "name": "api-pod-svc"
+        },
+        "spec": {
+            "selector": {
+                "app": "simple-api"
+            },
+            "ports": [{
+                "protocol": "TCP",
+                "port": 8085,
+                "targetPort": "porta-api"
+            }]
+        }
+    }
+    ```
+
+Antes de prosseguirmos dando comandos que nem doidos, vamos precisar entender como funcionam as redes internas do K8S.
+
+### 5.2.1 CRIANDO UMA REDE
+
+Se pararmos para pensar um pouco, o service nada mais é do que uma coisa que gerencia diversos pods separadamente, ou seja, vamos chegar no service e pedir para ele "ou, me manda para o pod-a" e ele vai ter que se virar para isso, mesmo que ele gerencie 30 pods. Porém esse trabalho não vai ser exatamente dele, e sim de um proxy reverso, que tem justamente essa função de entender qual requisição está chegando e para onde ele deve mandar a mesma, ou seja, um servidor de rotas.
+
+A vantagem de um proxy reverso é que sem ele as requisições teriam que acontecer por uma url própria, ou seja, se tivéssemos os pods A, B e C, cada um teria sua própria URL, e sempre que mandássemos uma requisição ela teria que ir direto para a URL do pod responsável. Com um proxy reverso podemos melhorar isso, o proxy reverso possibilita a utilização de DNS ou IP. E através deste endereço o servidor saberá rotear todas as nossas requisições para o pod correto.
+
+> OBS.: Isso aqui é necessário para quando estiver rodando local, provavelmente em cloud já terá esse serviço todo configurado para você, mas é bom saber isso, pois vai que uma hora precisa.
+
+O proxy reverso que vamos utilizar é o NGINX, mas não vamos instalar ele e configurar tudo do zero, pois esse serviço é bem comum, e claro que alguém na comunidade já fez um compilado para gente. E esse é o [nginx-ingress-controller](https://github.com/kubernetes/ingress-nginx/). O qual vamos instalar com o seguinte comando:
+
+```sh
+$ microk8s.enable ingress 
+```
+
+Você vai ver que ele retorna que `serviceaccount/nginx-ingress-microk8s-serviceaccount created`. 
+
+Se digitar agora o comando: 
+```sh
+$ microk8s.kubectl get pods --all-namespaces
+```
+
+Vai ver que temos um namespace chamado ingress, cujo name é `nginx-ingress-microk8s-controller-24c6p`, espere até ele ser efetivamente criado (coluna status) e dai podemos prosseguir.
+
+Se digitar o comando:
+
+```sh
+$ microk8s.kubectl get services --all-namespaces
+```
+
+Você verá que temos um namespace chamado `default`, o que significa que agora temos um local padrão para nossas apis serem acessadas.
+
+Agora digite o comando
+
+```sh
+$ microk8s.kubectl cluster-info
+```
+
+Do retorno desse comando, pegue a url que estará em `Kubernetes master`
+```sh
+Kubernetes master is running at https://127.0.0.1:16443
+```
+
+Ignore a porta e também acesse com http, ou seja `http://127.0.0.1`, se você jogar esse endreço no seu navegador vai aparecer um 404. Mas era essa a ideia mesmo. Vamos seguir com a criação do nosso serviço agora.
+
+### 5.2.1 VOLTANDO PARA A CRIAÇÃO DO SERVICE
+
+Primeiro vamos recriar o nosso pod, já que fizemos modificações nele, para isso vamos primeiro deletar ele e depois recriar. E depois vamos criar nosso serviço.
+
+```sh
+$ microk8s.kubectl delete pod api-pod
+$ microk8s.kubectl create -f 02-SERVICES/ex-02/pod-node-simple-api.yaml
+$ microk8s.kubectl create -f 02-SERVICES/ex-02/pod-api-service.yaml
+```
+
+Agora você pode verificar se o service foi criado com sucesso digitando:
+
+```sh
+$ microk8s.kubectl get services
+```
+
+Agora vamos pegar o IP do service para podermos acessar o pod, para isso digite:
+
+```sh
+$ microk8s.kubectl describe service api-pod-svc
+```
+
+Agora com a saída, teremos o IP, e também podemos ver aquela porta que definimos em `port` no arquivo do service. Então basta pegar o IP mais a porta e acessar no browser `10.152.183.46:8085`. Deu errado né? bom isso é porque na verdade acabamos de criar uma IP fixo para esse seletor. O que facilita a comunicação na rede interna do K8S. Para acessarmos via browser vamos precisar fazer mais algumas coisas.
+
