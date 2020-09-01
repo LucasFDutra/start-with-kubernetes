@@ -466,7 +466,7 @@ Agora vamos criar o arquivo declarativo para essa imagem.
             image: lucasfdutra/simple-node-api
             env:
                 - name: PORT
-                value: "8080"
+                value: "8080" # precisa ser uma string
             resources:
                 requests:
                     cpu: 100m
@@ -738,7 +738,7 @@ Mas agora imagine que precisamos modificar a porta do nosso pod, vamos precisar 
                     memory: 256M
             ports:
                 - containerPort: 8080
-                name: pod-api
+                name: porta-api
     ```
 
 - Em json
@@ -886,5 +886,113 @@ Agora vamos pegar o IP do service para podermos acessar o pod, para isso digite:
 $ microk8s.kubectl describe service api-pod-svc
 ```
 
-Agora com a saída, teremos o IP, e também podemos ver aquela porta que definimos em `port` no arquivo do service. Então basta pegar o IP mais a porta e acessar no browser `10.152.183.46:8085`. Deu errado né? bom isso é porque na verdade acabamos de criar uma IP fixo para esse seletor. O que facilita a comunicação na rede interna do K8S. Para acessarmos via browser vamos precisar fazer mais algumas coisas.
+Agora com a saída, teremos o IP, e também podemos ver aquela porta que definimos em `port` no arquivo do service. Então basta pegar o IP mais a porta e acessar no browser `10.152.183.46:8085`. Deu certo né? bom, mas isso ai só acontece no mikrok8s, no minikube temos que fazer mais algumas coisas, e na real o processo dele está mais correto.
 
+Primeiro vamos modificar o service para que ele seja do typo `NodePort`.
+
+- Em yaml
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata: 
+        name: api-pod-svc
+    spec: 
+        type: NodePort
+        selector: 
+            app: simple-api
+        ports:
+            - protocol: TCP
+            port: 8085
+            targetPort: porta-api
+    ```
+
+- Em json
+    ```json
+    {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": {
+            "name": "api-pod-svc"
+        },
+        "spec": {
+            "type": "NodePort",
+            "selector": {
+                "app": "simple-api"
+            },
+            "ports": [{
+                "protocol": "TCP",
+                "port": 8085,
+                "targetPort": "porta-api"
+            }]
+        }
+    }
+    ```
+
+Agora delete seu service, e recrie ele.
+
+```sh
+$ microk8s.kubectl delete service api-pod-svc
+$ microk8s.kubectl create -f 02-SERVICES/ex-02/pod-api-service.yaml
+```
+
+Agora rode o describe novamente para pegar a porta que o service irá se comunicar, ela fica no campo `NodePort`.
+
+> OBS.: Essa porta é criada aleatóriamente dentro do intervalo 30000-32767
+
+```sh
+$ microk8s.kubectl describe service api-pod-svc
+```
+
+No meu caso ficou `31856` e agora vamos pegar o ip do microk8s, com o comando:
+
+```sh
+$ microk8s.config 
+```
+
+E procure o campo `server`, que vai vir com um ip e uma porta, mas pode ignorar a porta e utilizar o que está em `NodePort`,  no meu caso fica: `http://192.168.42.247:31856`
+
+> OBS.: Se jogar no browser o endereço do service e a porta 8085 ainda vai funcionar, mas faça desse jeito que mostrei depois, pois é o jeito correto, o outro acontece por conta de coisas em particular do microk8s, o jeito que ele funciona e como ele se comunica com a máquina.
+
+Caso queira que a porta do NodePort seja fixa, basta especificar ela no em um campo `nodePort` dentro de `ports`
+
+- Em yaml
+```yaml
+apiVersion: v1
+kind: Service
+metadata: 
+    name: api-pod-svc
+spec: 
+    type: NodePort
+    selector: 
+        app: simple-api
+    ports:
+        - protocol: TCP
+          port: 8085
+          nodePort: 30526
+          targetPort: porta-api
+```
+
+- Em json
+```json
+{
+    "apiVersion": "v1",
+    "kind": "Service",
+    "metadata": {
+        "name": "api-pod-svc"
+    },
+    "spec": {
+        "type": "NodePort",
+        "selector": {
+            "app": "simple-api"
+        },
+        "ports": [{
+            "protocol": "TCP",
+            "port": 8085,
+            "nodePort": 30526,
+            "targetPort": "porta-api"
+        }]
+    }
+}
+```
+
+# 6. DEFININDO AS URLS DE ACESSO AO NOSSO SERVICE
