@@ -522,7 +522,7 @@ Digite o comando `microk8s.kubectl get pods` para ver o status do pod, caso ele 
 
 # 5. SERVICES
 
-> A PASTA DE REFERÊNCIA É A PASTA [01-SERVICES](./01-SERVICES)
+> A PASTA DE REFERÊNCIA É A PASTA [02-SERVICES](./02-SERVICES)
 
 Services são um conjunto lógico de pods e uma política pela qual saberemos como vamos acessar estes pods.
 
@@ -532,7 +532,7 @@ Agora como vamos fazer para definir quais pods pertêncem a um dado serviço? bo
 
 ## 5.1 LABELS
 
-> A PASTA DE REFERÊNCIA É A PASTA [01-SERVICES/ex-01](./01-SERVICES/ex-01)
+> A PASTA DE REFERÊNCIA É A PASTA [02-SERVICES/ex-01](./02-SERVICES/ex-01)
 
 Utilizarei o pod `pod-node-simple-api` que criamos no exemplo anterior. No arquivo manifesto que utilizamos para criar esse pod, vamos definir uma label para ele. Essa label recebera o nome de `app`, e terá o valor de `simple-api`, e fica dentro de `metadata`.
 
@@ -658,7 +658,7 @@ Isso vai trazer informações somente de pods com essa label (no nosso caso, som
 
 ## 5.2 DEFININDO UM SERVICE
 
-> A PASTA DE REFERÊNCIA É A PASTA [01-SERVICES/ex-02](./01-SERVICES/ex-02)
+> A PASTA DE REFERÊNCIA É A PASTA [02-SERVICES/ex-02](./02-SERVICES/ex-02)
 
 Agora que já entendemos para que serve um service. Vamos criar um.
 
@@ -995,4 +995,68 @@ spec:
 }
 ```
 
-# 6. DEFININDO AS URLS DE ACESSO AO NOSSO SERVICE
+# 6. INGRESS
+
+> A PASTA DE REFERÊNCIA É A PASTA [03-INGRESS/ex-01](./03-INGRESS/ex-01)
+
+
+Se você mandou alguém mais abrir o link que você gerou anteriormente, então você deve ter notado que ninguém consegue abrir ele além de você. Isso porque aquele ip é visível somente na sua rede interna.
+
+Para colocarmos esse ip para se comunicar com a internet propriamente falando, vamos utilizar um ingress (é importante que tenha feito a parte do nginx que citei anteriormente). Que vai fazer o papel de permitir os acessos de forma controlada.
+
+Vamos definir um ingress. 
+
+- Em yaml
+    ```yaml
+    apiVersion: extensions/v1beta1
+    kind: Ingress
+    metadata: 
+        name: api-ing
+    spec: 
+        backend: 
+            serviceName: default-http-backend
+            servicePort: 80
+        rules: 
+            - host: minhaapi.info
+            http:
+                paths: 
+                    - path: /teste
+                    backend: 
+                        serviceName: pod-api-svc
+                        servicePort: 8085
+    ```
+
+- Em json
+    ```json
+    {
+        "apiVersion": "extensions/v1beta1",
+        "kind": "Ingress",
+        "metadata": {
+            "name": "api-ing"
+        },
+        "spec": {
+            "backend": {
+                "serviceName": "default-http-backend",
+                "servicePort": 80
+            },
+            "rules": [{
+                "host": "minhaapi.info",
+                "http": {
+                    "paths": [{
+                        "path": "/teste",
+                        "backend": {
+                            "serviceName": "pod-api-svc",
+                            "servicePort": 8085
+                        }
+                    }]
+                }
+            }]
+        }
+    }
+    ```
+
+Rode o comando de criação:
+
+```sh
+$ microk8s.kubectl create -f 03-INGRESS/ex-01/pod-api-ingress.yaml
+```
