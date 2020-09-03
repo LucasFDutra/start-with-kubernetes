@@ -4,13 +4,13 @@ metadata:
     name: api-ing
 spec: 
     backend: 
-        serviceName: default-http-backend
+        serviceName: "default"
         servicePort: 80
     rules: 
-        - host: minhaapi.info
+        - host: "minhaapi.info"
           http:
             paths: 
-                - path: /teste
+                - path: "/teste"
                   backend: 
-                    serviceName: pod-api-svc
+                    serviceName: "pod-api-svc"
                     servicePort: 8085

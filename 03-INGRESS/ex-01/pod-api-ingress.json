@@ -6,7 +6,7 @@
     },
     "spec": {
         "backend": {
-            "serviceName": "default-http-backend",
+            "serviceName": "default",
             "servicePort": 80
         },
         "rules": [{

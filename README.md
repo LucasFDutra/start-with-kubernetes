@@ -997,14 +997,12 @@ spec:
 
 # 6. INGRESS
 
+
+Estou tendo problemas nessa parte, e o site da documentação do microk8s caiu. então não vou conseguir ver como faço funcionar
+
 > A PASTA DE REFERÊNCIA É A PASTA [03-INGRESS/ex-01](./03-INGRESS/ex-01)
 
-
-Se você mandou alguém mais abrir o link que você gerou anteriormente, então você deve ter notado que ninguém consegue abrir ele além de você. Isso porque aquele ip é visível somente na sua rede interna.
-
-Para colocarmos esse ip para se comunicar com a internet propriamente falando, vamos utilizar um ingress (é importante que tenha feito a parte do nginx que citei anteriormente). Que vai fazer o papel de permitir os acessos de forma controlada.
-
-Vamos definir um ingress. 
+Como já disse antes, o ingress nos auxilia a nos comunicarmos com a internet, e trata as rotas para nós. Considerando que você habilitou o ingress do nginx, então vamos definir um ingress. 
 
 - Em yaml
     ```yaml
@@ -1014,7 +1012,7 @@ Vamos definir um ingress.
         name: api-ing
     spec: 
         backend: 
-            serviceName: default-http-backend
+            serviceName: default
             servicePort: 80
         rules: 
             - host: minhaapi.info
@@ -1036,7 +1034,7 @@ Vamos definir um ingress.
         },
         "spec": {
             "backend": {
-                "serviceName": "default-http-backend",
+                "serviceName": "default",
                 "servicePort": 80
             },
             "rules": [{
@@ -1060,3 +1058,37 @@ Rode o comando de criação:
 ```sh
 $ microk8s.kubectl create -f 03-INGRESS/ex-01/pod-api-ingress.yaml
 ```
+
+- host: Será o nome DNS que seu serviço vai ouvir;
+
+- http.paths: aqui será onde definiremos os caminhos das URLs e também para onde elas vão apontar
+    - path: será o caminho propriamente dito, se colocarmos /teste, estamos dizendo que vamos trabalhar com a URL minhaapi.info/teste;
+    - backend: será o local que vamos definir para onde vamos levar a requisição;
+        - serviceName: nome do serviço que vai receber a requisição;
+        - servicePort: a porta que o serviço está ouvindo.
+
+Ou seja, se colocarmos no navegador `http://minhaapi.info/teste` vamos ser direcionados para a service que está na porta 8085 e que por sua vez vai para o pod na 8080.
+
+Veja que agora podemos definir diversas rotas, com esse ingress, e cada uma aponta para um service. Isso é muito bom.
+
+Porém nada é tão maravilhoso e simples, como já deve ter notado até aqui, então se jogar essa url no seu navegador, você não vai ver sua aplicação funcionando. Isso porque precisamos configurar o DNS.
+
+## 6.1 DNS
+
+Vamos definir o DNS dentro do nosso arquivo `etc/hosts`, que é o primeiro local que tada requisição que fazemos fica, no windows isso fica em `C:\Windows\System32\drivers\etc\hosts`.
+
+Vamos primeiro pegar o ip do microk8s, igual fizemos anteriormente (talvez ele tenha mudado).
+
+```sh
+$ microk8s.config
+```
+
+No meu caso, o ip é `192.168.0.108`, então vou adicioná-lo na minha tabela de DNS colocando a seguinte linha: `192.168.0.108   minhaapi.info`.
+
+E agora acesse o endereço `http://minhaapi.info/teste`
+
+> OBS.: Em provedores de cloud isso de dns e ingress são fornecidos pela própria cloud. Mas vamos ver mais para frente como trabalharemos com cloud.
+
+
+
+
